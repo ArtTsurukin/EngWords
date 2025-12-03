@@ -19,5 +19,5 @@ def create_word_dict(all_word_list):
     session.close()
     return "dictionary created"
 
-create_word_dict(all_word_list=dictionary.all_words)
+#create_word_dict(all_word_list=dictionary.all_words)
 

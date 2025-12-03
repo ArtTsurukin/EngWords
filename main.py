@@ -1,17 +1,30 @@
 import telebot.types
 import config
+import time
 
 from telebot import TeleBot
 from database import Session
 from database.models import User, Word, UserWordAssociation
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
+from utils import get_five_random_words, get_three_random_word, shuffle_dict
 
-bot = TeleBot(token=config.BOT_TOKEN, parse_mode=None)
+bot = TeleBot(token=config.BOT_TOKEN, parse_mode="HTML")
 
 
 @bot.message_handler(commands=["start"])
 def send_start_message(message):
     user_id = message.from_user.id
+
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+
+    button_1 = telebot.types.InlineKeyboardButton("Учим новые", callback_data="new_words")
+    button_2 = telebot.types.InlineKeyboardButton("Повторяем старые", callback_data="repeat_words")
+    button_3 = telebot.types.InlineKeyboardButton("Мои успехи", callback_data="user_stats")
+
+    markup.add(button_1, button_2, button_3)
+
+    bot.send_message(message.chat.id, f"Привет {message.from_user.first_name}, нажмите кнопку:", reply_markup=markup)
+
     session = Session()
 
     try:
@@ -51,33 +64,49 @@ def send_start_message(message):
         session.close()
 
 
-    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-
-    button_1 = telebot.types.InlineKeyboardButton("Учим новые", callback_data="new_words")
-    button_2 = telebot.types.InlineKeyboardButton("Повторяем старые", callback_data="repeat_old")
-    button_3 = telebot.types.InlineKeyboardButton("Мои успехи", callback_data="user_stats")
-
-    markup.add(button_1, button_2, button_3)
-
-    bot.send_message(message.chat.id, f"Привет {message.from_user.first_name}, нажмите кнопку:", reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "new_words")
 def new_words(call):
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, "New words!")
+    user_id = call.from_user.id
+    words = get_five_random_words(user_id=user_id)
+    bot.send_message(call.message.chat.id, "Вот новые слова:")
+    for word_dict in words:
+        bot.send_message(call.message.chat.id, f"<b>{word_dict.get('word_eng')}</b> - <i>{word_dict.get('word_rus')}</i>")
+        time.sleep(1)
 
 
-
-@bot.callback_query_handler(func=lambda call: call.data == "repeat_old")
-def new_words(call):
+@bot.callback_query_handler(func=lambda call: call.data == "repeat_words")
+def repeat_words(call):
     bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, "Repeat old words!")
+    user_id = call.from_user.id
+    words = get_five_random_words(user_id=user_id, learned=True)
+    for word_dict in words:
+
+        # Получаем три неверных варианта для рендера ответов
+        ans_var = get_three_random_word()
+        # Добавляем один верный вариант
+        ans_var[word_dict.get("word_rus")] = True
+        # Перемешиваем словарь для случайного вывода ответов
+        ans_var_shuf = shuffle_dict(d = ans_var)
 
 
+        markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+
+        button_1 = telebot.types.InlineKeyboardButton(list(ans_var_shuf.keys())[0], callback_data=list(ans_var_shuf.keys())[0])
+        button_2 = telebot.types.InlineKeyboardButton(list(ans_var_shuf.keys())[1], callback_data=list(ans_var_shuf.keys())[1])
+        button_3 = telebot.types.InlineKeyboardButton(list(ans_var_shuf.keys())[2], callback_data=list(ans_var_shuf.keys())[2])
+        button_4 = telebot.types.InlineKeyboardButton(list(ans_var_shuf.keys())[3], callback_data=list(ans_var_shuf.keys())[3])
+
+        markup.add(button_1, button_2, button_3, button_4)
+
+        bot.send_message(call.message.chat.id,
+                         f"Выберете правильный вариант. <b><pre>{word_dict.get('word_eng')}</pre></b> это:",
+                         reply_markup=markup, parse_mode='HTML')
 
 @bot.callback_query_handler(func=lambda call: call.data == "user_stats")
-def handle_my_profile(call):
+def user_stats(call):
     session = Session()
     bot.answer_callback_query(call.id)
     user_name = call.from_user.first_name
@@ -94,12 +123,12 @@ def handle_my_profile(call):
     unlearned_words = session.query(UserWordAssociation).filter(
         and_(
             UserWordAssociation.user_id == call.from_user.id,
-            UserWordAssociation.learned == True
+            UserWordAssociation.learned == False
         )
     ).count()
 
     bot.send_message(call.message.chat.id,
-                     f"{user_name}, ты знаешь уже {learned_words} слов! Осталось выучить {unlearned_words}")
+                     f"<b>{user_name}</b>, ты знаешь уже {learned_words} слов! Осталось выучить {unlearned_words}")
 
 
 
