@@ -1,12 +1,13 @@
 import telebot.types
 import config
 import time
+import random
 
 from telebot import TeleBot
 from database import Session
 from database.models import User, Word, UserWordAssociation
 from sqlalchemy import and_
-from utils import get_five_random_words, get_three_random_word, shuffle_dict
+from utils import get_five_random_words, get_three_random_word
 
 bot = TeleBot(token=config.BOT_TOKEN, parse_mode="HTML")
 
@@ -87,23 +88,27 @@ def repeat_words(call):
         # Получаем три неверных варианта для рендера ответов
         ans_var = get_three_random_word()
         # Добавляем один верный вариант
-        ans_var[word_dict.get("word_rus")] = True
-        # Перемешиваем словарь для случайного вывода ответов
-        ans_var_shuf = shuffle_dict(d = ans_var)
-
+        ans_var.append(word_dict.get("word_rus"))
+        # Перемешиваем список для случайного вывода ответов
+        random.shuffle(ans_var)
 
         markup = telebot.types.InlineKeyboardMarkup(row_width=2)
 
-        button_1 = telebot.types.InlineKeyboardButton(list(ans_var_shuf.keys())[0], callback_data=list(ans_var_shuf.keys())[0])
-        button_2 = telebot.types.InlineKeyboardButton(list(ans_var_shuf.keys())[1], callback_data=list(ans_var_shuf.keys())[1])
-        button_3 = telebot.types.InlineKeyboardButton(list(ans_var_shuf.keys())[2], callback_data=list(ans_var_shuf.keys())[2])
-        button_4 = telebot.types.InlineKeyboardButton(list(ans_var_shuf.keys())[3], callback_data=list(ans_var_shuf.keys())[3])
+        button_1 = telebot.types.InlineKeyboardButton(ans_var[0], callback_data=ans_var[0])
+        button_2 = telebot.types.InlineKeyboardButton(ans_var[1], callback_data=ans_var[1])
+        button_3 = telebot.types.InlineKeyboardButton(ans_var[2], callback_data=ans_var[2])
+        button_4 = telebot.types.InlineKeyboardButton(ans_var[3], callback_data=ans_var[3])
 
         markup.add(button_1, button_2, button_3, button_4)
 
         bot.send_message(call.message.chat.id,
                          f"Выберете правильный вариант. <b><pre>{word_dict.get('word_eng')}</pre></b> это:",
                          reply_markup=markup, parse_mode='HTML')
+
+
+
+
+
 
 @bot.callback_query_handler(func=lambda call: call.data == "user_stats")
 def user_stats(call):

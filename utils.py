@@ -68,15 +68,12 @@ def get_five_random_words(user_id, learned=False):
 def get_three_random_word():
     session = Session()
     word_data = session.query(Word).order_by(func.random()).limit(3).all()
-    three_word = {}
+    three_word = []
+    session.close()
     for word in word_data:
-        three_word[word.word_rus] = False
+        three_word.append(word.word_rus)
     return three_word
 
 
-# Перемешиваем словарь для случайного порядка ответов
-def shuffle_dict(d: dict):
-    keys = list(d.keys())
-    shuffle(keys)
-    return {key: d[key] for key in keys}
+
 
