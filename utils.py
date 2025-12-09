@@ -1,7 +1,6 @@
 from sqlalchemy import and_, func
 from database import Session
 from database.models import UserWordAssociation, Word
-from random import shuffle
 
 
 # Функция получает 5 англ слов с переводом
