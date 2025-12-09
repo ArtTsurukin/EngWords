@@ -1,17 +1,17 @@
 import telebot.types
-import config
 import time
 import random
 import threading
-from collections import defaultdict
 
+from config import config
+from collections import defaultdict
 from telebot import TeleBot
 from database import Session
 from database.models import User, Word, UserWordAssociation
 from sqlalchemy import and_
 from utils import get_five_random_words, get_three_random_word
 
-bot = TeleBot(token=config.BOT_TOKEN, parse_mode="HTML")
+bot = TeleBot(token=config.bot_token, parse_mode="HTML")
 
 # Словарь для хранения состояния викторины для каждого пользователя
 user_quiz_state = defaultdict(dict)
@@ -140,6 +140,7 @@ def ask_quiz_question(user_id):
 
     # Генерируем варианты ответов
     ans_var = get_three_random_word()
+    # Добавляем верный вариант ответа
     ans_var.append(word_dict.get("word_rus"))
     random.shuffle(ans_var)
 

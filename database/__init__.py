@@ -1,23 +1,35 @@
 # Create DB
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 
-import dictionary
-from config import DATABASE_URL
+from dictionary import all_words
+from config import config
 from database.models import Base, Word
 
-engine = create_engine(DATABASE_URL)
-
+engine = create_engine(config.database_url)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
-def create_word_dict(all_word_list):
+#Добавляем слова в словарь после создания БД. Если в словаре уже есть слова, пропускаем
+def create_word_dict():
     session = Session()
-    session.query(Word).delete(synchronize_session="fetch") # удаляем данные из таблицы
-    session.add_all(all_word_list)
-    session.commit()
-    session.close()
-    return "dictionary created"
+    if session.query(func.count(Word.id)).scalar() < 1:
+        session.add_all(all_words)
+        session.commit()
+        print("create DB")
+    else:
+        print("DB already exist")
 
-#create_word_dict(all_word_list=dictionary.all_words)
+    session.close()
+
+create_word_dict()
+
+
+
+
+
+
+
+
+
 
