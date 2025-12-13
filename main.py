@@ -79,7 +79,9 @@ def new_words(call):
     for word_dict in words:
         bot.send_message(call.message.chat.id,
                          f"<b>{word_dict.get('word_eng')}</b> - <i>{word_dict.get('word_rus')}</i>")
-        time.sleep(1)
+        #time.sleep(1)
+        threading.Timer(0.5, ask_quiz_question, args=[user_id]).start()
+
 
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
 
@@ -225,7 +227,7 @@ def handle_quiz_answer(call):
     # Увеличиваем счетчик вопроса
     quiz_data['current_index'] += 1
 
-    # Ждем 1.5 секунды перед следующим вопросом
+    # Ждем 0.5 секунды перед следующим вопросом
     threading.Timer(0.5, ask_quiz_question, args=[user_id]).start()
 
 

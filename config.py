@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 class Config:
 
     def __init__(self):
-        self.env = os.getenv("APP_ENV", "development")
+        self.env = os.getenv("APP_ENV", "production")
 
         self._load_env_vars()
 
@@ -24,6 +24,5 @@ class Config:
         return os.getenv("DATABASE_URL")
 
 config = Config()
-
 
 
