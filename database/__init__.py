@@ -2,7 +2,7 @@
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 
-from dictionary import all_words
+from dictionary import oxford_3000
 from config import config
 from database.models import Base, Word
 
@@ -14,7 +14,7 @@ Session = sessionmaker(bind=engine)
 def create_word_dict():
     session = Session()
     if session.query(func.count(Word.id)).scalar() < 1:
-        session.add_all(all_words)
+        session.add_all(oxford_3000)
         session.commit()
         print("create DB")
     else:

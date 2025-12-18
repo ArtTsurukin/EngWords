@@ -296,6 +296,5 @@ def user_stats(call):
 if __name__ == "__main__":
     bot.infinity_polling(
         timeout=60,
-        long_polling_timeout=30,
-        logger_level=10  # DEBUG level для более детальных логов
+        long_polling_timeout=30
     )
