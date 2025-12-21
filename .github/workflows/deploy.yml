@@ -30,35 +30,34 @@ jobs:
     needs: build-and-push
 
     steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v0.1.7
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          script: |
-            set -e  # Остановиться при ошибке
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
-            cd ~/deploy
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "
+          cd ~/deploy
 
             # Проверяем, что Docker доступен
-            docker --version
+          docker --version
 
             # Скачиваем новый образ
-            echo "Скачиваем новый образ..."
-            docker-compose pull bot_app
+          echo "Скачиваем новый образ..."
+          docker-compose pull bot_app
 
             # Перезапускаем только бота (БД останется нетронутой)
-            echo "Перезапускаем сервис бота..."
-            docker-compose up -d --no-deps bot_app
+          echo "Перезапускаем сервис бота..."
+          docker-compose up -d --no-deps bot_app
 
             # Проверяем, что контейнер запустился
-            echo "Проверяем статус..."
-            sleep 5
-            docker-compose ps
+          echo "Проверяем статус..."
+          sleep 5
+          docker-compose ps
 
             # Очищаем старые образы
-            docker image prune -f --filter "until=24h"
+          docker image prune -f --filter "until=24h"
 
 
 
