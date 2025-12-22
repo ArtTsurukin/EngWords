@@ -38,8 +38,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           script: |
             cd ~/deploy
+            docker --version
             docker compose down
-            docker compose up -d
+            docker pull artemtsurukin/eng_words_bot:1.0
           
           
 
