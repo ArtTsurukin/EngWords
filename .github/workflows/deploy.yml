@@ -36,11 +36,13 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          script: |
+          script: |           
             cd ~/deploy
-            docker --version
-            docker compose down
             docker pull artemtsurukin/eng_words_bot:1.0
+            docker compose stop bot_app
+            docker compose rm -f bot_app
+            docker compose up -d bot_app
+            docker compose ps bot_app
           
           
 
