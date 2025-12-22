@@ -38,26 +38,17 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}
+          
           cd ~/deploy
 
             # Проверяем, что Docker доступен
           docker --version
-
-            # Скачиваем новый образ
-          echo "Скачиваем новый образ..."
-          docker-compose pull bot_app
-
-            # Перезапускаем только бота (БД останется нетронутой)
-          echo "Перезапускаем сервис бота..."
-          docker-compose up -d --no-deps bot_app
-
-            # Проверяем, что контейнер запустился
-          echo "Проверяем статус..."
-          sleep 5
-          docker-compose ps
-
-            # Очищаем старые образы
-          docker image prune -f --filter "until=24h"
+          
+          pwd
+          
+          ls
+          
+          
 
 
 
