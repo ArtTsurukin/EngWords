@@ -288,7 +288,7 @@ def user_stats(call):
     ).count()
 
     bot.send_message(call.message.chat.id,
-                     f"<b>{user_name}</b>, ты знаешь уже {learned_words} слов! Осталось выучить {unlearned_words}")
+                     f"<b>{user_name}</b>, ты знаешь уже {learned_words} слов! Всего слов: {unlearned_words + learned_words} Осталось выучить {unlearned_words}")
 
     session.close()
 
