@@ -38,11 +38,11 @@ jobs:
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           script: |           
             cd ~/deploy
+            docker compose --env-file .env.production down
             docker pull artemtsurukin/eng_words_bot:1.0
-            docker compose stop bot_app
-            docker compose rm -f bot_app
-            docker compose up -d bot_app
-            docker compose ps bot_app
+            docker compose --env-file .env.production up -d
+            
+            
           
           
 
