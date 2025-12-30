@@ -292,6 +292,19 @@ def user_stats(call):
 
     session.close()
 
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+
+    button_1 = telebot.types.InlineKeyboardButton("Учим новые", callback_data="new_words")
+    button_2 = telebot.types.InlineKeyboardButton("Повторяем старые", callback_data="repeat_words")
+    button_3 = telebot.types.InlineKeyboardButton("Мои успехи", callback_data="user_stats")
+
+    markup.add(button_1, button_2, button_3)
+
+    bot.send_message(
+        call.message.chat.id,
+        "Что дальше?",
+        reply_markup=markup
+    )
 
 if __name__ == "__main__":
     bot.infinity_polling(
