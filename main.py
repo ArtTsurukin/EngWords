@@ -99,7 +99,29 @@ def new_words(call):
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "repeat_words")
-def repeat_words(call):
+def choice_mode_quiz(call):
+    markup = telebot.types.InlineKeyboardMarkup()
+
+    button_1 = telebot.types.InlineKeyboardButton("ENG -> RUS", callback_data="eng_rus")
+    button_2 = telebot.types.InlineKeyboardButton("RUS -> ENG", callback_data="rus_eng")
+
+    markup.add(button_1, button_2)
+
+    bot.send_message(
+        call.message.chat.id,
+        "Выберете режим:",
+        reply_markup=markup
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "rus_eng")
+def repeat_words_rus_eng(call):
+    bot.send_message(
+        call.message.chat.id, "Режим RUS -> ENG в разработке"
+        )
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "eng_rus")
+def repeat_words_eng_rus(call):
     bot.answer_callback_query(call.id)
     user_id = call.from_user.id
 
