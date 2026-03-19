@@ -2,6 +2,7 @@ import telebot.types
 import time
 import random
 import threading
+import pydoc
 
 from config import config
 from collections import defaultdict
