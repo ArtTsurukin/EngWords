@@ -21,7 +21,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 100M
+          memory: 384M
+        reservations:
+          memory: 128M
 
   bot_app:
     image: artemtsurukin/eng_words_bot:1.0
@@ -40,7 +42,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 100M
+          memory: 448M
+        reservations:
+          memory: 128M
 
 volumes:
   bot_app_data:
