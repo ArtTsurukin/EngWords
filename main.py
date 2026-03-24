@@ -157,7 +157,7 @@ def ask_quiz_question(user_id):
     word_dict = quiz_data['words'][quiz_data['current_index']]
 
     # Генерируем варианты ответов
-    ans_var = get_three_random_word(rus_or_eng="word_eng")
+    ans_var = get_three_random_word()
     # Добавляем верный вариант ответа
     ans_var.append(word_dict.get("word_eng"))
     random.shuffle(ans_var)
@@ -325,7 +325,7 @@ def ask_quiz_question(user_id):
     word_dict = quiz_data['words'][quiz_data['current_index']]
 
     # Генерируем варианты ответов
-    ans_var = get_three_random_word(rus_or_eng="word_rus")
+    ans_var = get_three_random_word()
     # Добавляем верный вариант ответа
     ans_var.append(word_dict.get("word_rus"))
     random.shuffle(ans_var)

@@ -64,13 +64,13 @@ def get_five_random_words(user_id, learned=False):
 
 
 # Создаем словарь с тремя неверными вариантами ответа
-def get_three_random_word(rus_or_eng: str):
+def get_three_random_word():
     session = Session()
     word_data = session.query(Word).order_by(func.random()).limit(3).all()
     three_word = []
     session.close()
     for word in word_data:
-        three_word.append(word.rus_or_eng)
+        three_word.append(word)
     return three_word
 
 
