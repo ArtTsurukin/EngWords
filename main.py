@@ -76,7 +76,7 @@ def new_words(call):
     bot.answer_callback_query(call.id)
     user_id = call.from_user.id
     words = get_five_random_words(user_id=user_id)
-    bot.send_message(call.message.chat.id, "Вот новые слова:")
+    bot.send_message(call.message.chat.id, "Здесь новые слова:")
     for word_dict in words:
         bot.send_message(call.message.chat.id,
                          f"<b>{word_dict.get('word_eng')}</b> - <i>{word_dict.get('word_rus')}</i>")
