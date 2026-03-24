@@ -18,12 +18,8 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 380M
-        reservations:
-          memory: 128M
+    mem_limit: 380M
+    mem_reservation: 128M
 
   bot_app:
     image: artemtsurukin/eng_words_bot:1.0
@@ -39,12 +35,8 @@ services:
       bot_db:
         condition: service_healthy
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 448M
-        reservations:
-          memory: 128M
+    mem_limit: 448M
+    mem_reservation: 128M
 
 volumes:
   bot_app_data:
