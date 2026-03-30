@@ -3,8 +3,8 @@ from database import Session
 from database.models import UserWordAssociation, Word
 
 
-# Функция получает 5 англ слов с переводом
-def get_five_random_words(user_id, learned=False):
+# Функция получает заданное количество англ слов с переводом
+def get_any_random_words(howmuch: int, user_id, learned=False):
 
     session = Session()
 
@@ -21,7 +21,7 @@ def get_five_random_words(user_id, learned=False):
             )
         ).order_by(
             func.random()
-        ).limit(5).all()
+        ).limit(howmuch).all()
 
         if not unlearned_words:
             return []

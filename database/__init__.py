@@ -3,10 +3,10 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 
 from dictionary import oxford_3000
-from config import config
+from config import config_bot
 from database.models import Base, Word
 
-engine = create_engine(config.database_url)
+engine = create_engine(config_bot.database_url)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
