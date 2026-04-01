@@ -7,10 +7,10 @@ from config import config_bot
 from collections import defaultdict
 from database import Session
 from database.models import User, Word, UserWordAssociation
-from sqlalchemy import and_, lambda_stmt
+from sqlalchemy import and_
 from utils import get_any_random_words, get_three_random_word
 from telebot.async_telebot import AsyncTeleBot
-from menus import main_menu, select_mode, send_next_word
+from menus import main_menu, select_mode_lang_write, send_next_word, select_mode, select_mode_lang_button
 
 bot = AsyncTeleBot(token=config_bot.bot_token, parse_mode="HTML")
 
@@ -78,19 +78,29 @@ async def new_words(call):
 @bot.callback_query_handler(func=lambda call: call.data=="repeat_words")
 async def repeat_words(call):
     await bot.answer_callback_query(call.id)
-    await select_mode(bot,
-                      call.message.chat.id,
-                      call.message.message_id)
+    await select_mode(bot, call.message.chat.id, call.message.message_id)
 
 
-@bot.callback_query_handler(func=lambda call: call.data == "ru_eng")
-async def repeat_words_ru_eng(call):
+@bot.callback_query_handler(func=lambda call: call.data=="write_mode")
+async def select_mode_language_write(call):
+    await bot.answer_callback_query(call.id)
+    await select_mode_lang_write(bot, call.message.chat.id, call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda call: call.data=="button_mode")
+async def select_mode_language_button(call):
+    await bot.answer_callback_query(call.id)
+    await select_mode_lang_button(bot, call.message.chat.id, call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "rus_eng_button")
+async def repeat_words_ru_eng_button(call):
     await bot.answer_callback_query(call.id)
 
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
 
-    button_1 = telebot.types.InlineKeyboardButton("Начать", callback_data="start_ru_eng")
-    button_2 = telebot.types.InlineKeyboardButton("Назад", callback_data="back:select_mode")
+    button_1 = telebot.types.InlineKeyboardButton("Начать", callback_data="start_rus_eng_button")
+    button_2 = telebot.types.InlineKeyboardButton("Назад", callback_data="back:select_mode_lang")
     button_3 = telebot.types.InlineKeyboardButton("Главное меню", callback_data="back:show_main_menu")
 
     markup.add(button_1, button_2, button_3)
@@ -102,14 +112,51 @@ async def repeat_words_ru_eng(call):
                               )
 
 
-@bot.callback_query_handler(func=lambda call: call.data=="eng_ru")
-async def repeat_words_eng_ru(call):
+@bot.callback_query_handler(func=lambda call: call.data == "eng_rus_button")
+async def repeat_words_ru_eng_button(call):
     await bot.answer_callback_query(call.id)
 
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
 
-    button_1 = telebot.types.InlineKeyboardButton("Начать", callback_data="start_eng_ru")
-    button_2 = telebot.types.InlineKeyboardButton("Назад", callback_data="back:select_mode")
+    button_1 = telebot.types.InlineKeyboardButton("Начать", callback_data="start_eng_rus_button")
+    button_2 = telebot.types.InlineKeyboardButton("Назад", callback_data="back:select_mode_lang")
+    button_3 = telebot.types.InlineKeyboardButton("Главное меню", callback_data="back:show_main_menu")
+
+    markup.add(button_1, button_2, button_3)
+
+    await bot.edit_message_text("Выбран режим: ENG-RU",
+                            chat_id=call.message.chat.id,
+                            message_id=call.message.message_id,
+                            reply_markup=markup
+                              )
+
+@bot.callback_query_handler(func=lambda call: call.data == "rus_eng_write")
+async def repeat_words_ru_eng_write(call):
+    await bot.answer_callback_query(call.id)
+
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+
+    button_1 = telebot.types.InlineKeyboardButton("Начать", callback_data="start_rus_eng_write")
+    button_2 = telebot.types.InlineKeyboardButton("Назад", callback_data="back:select_mode_lang")
+    button_3 = telebot.types.InlineKeyboardButton("Главное меню", callback_data="back:show_main_menu")
+
+    markup.add(button_1, button_2, button_3)
+
+    await bot.edit_message_text("Выбран режим: RU-ENG",
+                            chat_id=call.message.chat.id,
+                            message_id=call.message.message_id,
+                            reply_markup=markup
+                              )
+
+
+@bot.callback_query_handler(func=lambda call: call.data=="eng_rus_write")
+async def repeat_words_eng_ru_write(call):
+    await bot.answer_callback_query(call.id)
+
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+
+    button_1 = telebot.types.InlineKeyboardButton("Начать", callback_data="start_eng_rus_write")
+    button_2 = telebot.types.InlineKeyboardButton("Назад", callback_data="back:select_mode_lang")
     button_3 = telebot.types.InlineKeyboardButton("Главное меню", callback_data="back:show_main_menu")
 
     markup.add(button_1, button_2, button_3)
@@ -121,13 +168,13 @@ async def repeat_words_eng_ru(call):
                           )
 
 
-@bot.callback_query_handler(func=lambda call: call.data == "start_ru_eng")
+@bot.callback_query_handler(func=lambda call: call.data == "start_rus_eng_write")
 async def start_ru_eng_mode(call):
     await bot.answer_callback_query(call.id)
     user_id = call.from_user.id
 
     # Получаем слова для повторения
-    words_for_repeat = get_any_random_words(howmuch=4,
+    words_for_repeat = get_any_random_words(howmuch=10,
                                             user_id=user_id,
                                             learned=True)
 
@@ -147,7 +194,8 @@ async def start_ru_eng_mode(call):
     user_repeat_state[user_id] = {
         "words": words_for_repeat,
         "current_index": 0,
-        "mode": "ru_eng",
+        "mode": "write",
+        "mode_lang": "rus_eng",
         "current_answer": None
     }
     # Отправляем первое слово
@@ -158,35 +206,87 @@ async def start_ru_eng_mode(call):
                          message_id=call.message.message_id)
 
 
+@bot.callback_query_handler(func=lambda call: call.data == "start_eng_rus_write")
+async def start_eng_rus_mode(call):
+    await bot.answer_callback_query(call.id)
+    user_id = call.from_user.id
+
+    # Получаем слова для повторения
+    words_for_repeat = get_any_random_words(howmuch=10,
+                                            user_id=user_id,
+                                            learned=True)
+
+    if not words_for_repeat:
+        text = "У Вас еще нет изученных слов"
+        await bot.edit_message_text(
+            text=text,
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id
+        )
+        # Переход в главное меню
+        await main_menu(bot=bot,
+                        chat_id=call.message.chat.id)
+        return
+
+    # Сохраняем состояние пользователя
+    user_repeat_state[user_id] = {
+        "words": words_for_repeat,
+        "current_index": 0,
+        "mode": "write",
+        "mode_lang": "eng_rus",
+        "current_answer": None
+    }
+    mode = user_repeat_state[user_id].get("mode")
+    print(f"mode: {mode}")
+    # Отправляем первое слово
+    await send_next_word(bot=bot,
+                         chat_id=call.message.chat.id,
+                         user_id=user_id,
+                         mode=mode,
+                         user_repeat_state=user_repeat_state,
+                         message_id=call.message.message_id)
+
 
 @bot.message_handler(func=lambda message: True)
 async def handle_answer(message):
-    """Обрабатывает ответы пользователя в викторине"""
+    # Обрабатывает текстовый ввод
     user_id = message.from_user.id
 
-    # Проверяем, есть ли активная викторина у пользователя
+    # Проверяем, есть ли активный цикл у пользователя
     if user_id not in user_repeat_state:
         return
 
     state = user_repeat_state[user_id]
     user_answer = message.text.strip().lower()
     correct_answer = state['current_answer'].lower()
+    mode_lang = state.get("mode_lang")
+    words = state["words"][state["current_index"]]
+    # Выбирает слова для вывода исходя из режима
+    current_word = words.get("word_eng") if mode_lang == "eng_rus" else words.get("word_rus")
     # Проверяем ответ
     if user_answer == correct_answer:
         # Правильный ответ
-        response_text = f"✅ Правильно! Идем дальше:"
+        #await bot.delete_message(message.chat.id, message.message_id)
+        response_text = f"✅ Правильно! <b>{user_answer}</b> это <b>{current_word}</b>:"
         await bot.send_message(message.chat.id, response_text)
-
+        # await bot.edit_message_text(
+        #     text=response_text,
+        #     chat_id=message.chat.id,
+        #     message_id=message.message_id - 1
+        # )
         # Переходим к следующему слову
         state['current_index'] += 1
         await send_next_word(bot=bot,
                              chat_id=message.chat.id,
                              user_id=user_id,
-                             user_repeat_state=user_repeat_state)
+                             user_repeat_state=user_repeat_state,
+                             mode=state.get("mode"),
+                             message=message)
 
     else:
         # Неправильный ответ
-        response_text = f"❌ Неверно! Правильный перевод: {correct_answer} Идем дальше:"
+        #await bot.delete_message(message.chat.id, message.message_id)
+        response_text = f"❌ Неверно! <b>{current_word}</b> это <b>{correct_answer}</b> Ваш ответ: {user_answer}"
         await bot.send_message(message.chat.id, response_text)
 
         # Переходим к следующему слову
@@ -194,9 +294,10 @@ async def handle_answer(message):
         await send_next_word(bot=bot,
                              chat_id=message.chat.id,
                              user_id=user_id,
-                             user_repeat_state=user_repeat_state)
+                             user_repeat_state=user_repeat_state,
+                             mode=state.get("mode"),
+                             message=message)
 
-        #await bot.delete_message(message.chat.id, message.message_id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("back:"))
 async def back(call):
@@ -206,6 +307,10 @@ async def back(call):
         await main_menu(bot, call.message.chat.id, call.message.message_id)
     elif previous_state == "select_mode":
         await select_mode(bot, call.message.chat.id, call.message.message_id)
+    elif previous_state == "repeat_words":
+        await select_mode(bot, call.message.chat.id, call.message.message_id)
+    elif previous_state == "select_mode_lang":
+        await select_mode_lang_write(bot, call.message.chat.id, call.message.message_id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "user_stats")
