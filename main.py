@@ -1,4 +1,5 @@
 import asyncio
+import random
 import time
 
 import telebot.types
@@ -112,6 +113,45 @@ async def repeat_words_ru_eng_button(call):
                               )
 
 
+@bot.callback_query_handler(func=lambda call: call.data == "start_rus_eng_button")
+async def start_rus_eng_button(call):
+    await bot.answer_callback_query(call.id)
+    user_id = call.from_user.id
+
+    # Получаем слова для повторения
+    words_for_repeat = get_any_random_words(howmuch=10,
+                                            user_id=user_id,
+                                            learned=True)
+
+    if not words_for_repeat:
+        text = "У Вас еще нет изученных слов"
+        await bot.edit_message_text(
+            text=text,
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id
+        )
+        # Переход в главное меню
+        await main_menu(bot=bot,
+                        chat_id=call.message.chat.id)
+        return
+
+        # Сохраняем состояние пользователя
+    user_repeat_state[user_id] = {
+        "words": words_for_repeat,
+        "current_index": 0,
+        "mode": "button",
+        "mode_lang": "rus_eng",
+        "current_answer": None
+        }
+
+    await send_next_word(bot=bot,
+                         chat_id=call.message.chat.id,
+                         user_id=user_id,
+                         user_repeat_state=user_repeat_state,
+                         message_id=call.message.message_id,
+                         )
+
+
 @bot.callback_query_handler(func=lambda call: call.data == "eng_rus_button")
 async def repeat_words_ru_eng_button(call):
     await bot.answer_callback_query(call.id)
@@ -129,6 +169,92 @@ async def repeat_words_ru_eng_button(call):
                             message_id=call.message.message_id,
                             reply_markup=markup
                               )
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "start_eng_rus_button")
+async def start_eng_rus_button(call):
+    await bot.answer_callback_query(call.id)
+    user_id = call.from_user.id
+
+    # Получаем слова для повторения
+    words_for_repeat = get_any_random_words(howmuch=10,
+                                            user_id=user_id,
+                                            learned=True)
+
+    if not words_for_repeat:
+        text = "У Вас еще нет изученных слов"
+        await bot.edit_message_text(
+            text=text,
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id
+        )
+        # Переход в главное меню
+        await main_menu(bot=bot,
+                        chat_id=call.message.chat.id)
+        return
+
+        # Сохраняем состояние пользователя
+    user_repeat_state[user_id] = {
+        "words": words_for_repeat,
+        "current_index": 0,
+        "mode": "button",
+        "mode_lang": "eng_rus",
+        "current_answer": None
+        }
+
+    await send_next_word(bot=bot,
+                         chat_id=call.message.chat.id,
+                         user_id=user_id,
+                         user_repeat_state=user_repeat_state,
+                         message_id=call.message.message_id,
+                         )
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("ans_but:"))
+async def handler_answer_button(call):
+    # Обработка ответов с кнопок
+    await bot.answer_callback_query(call.id)
+    user_id = call.from_user.id
+    # Проверяем, есть ли активный цикл у пользователя
+    if user_id not in user_repeat_state:
+        return
+
+    user_state = user_repeat_state[user_id]
+    user_answer = call.data.split(":")[-1]
+    correct_answer = user_state["current_answer"]
+    words = user_state["words"][user_state["current_index"]]
+    mode_lang = user_state.get("mode_lang")
+    # Выбирает слова для вывода исходя из режима
+    current_word = words.get("word_eng") if mode_lang == "eng_rus" else words.get("word_rus")
+
+
+    if user_answer == correct_answer:
+        response_text = f"✅ Правильно! <b>{user_answer}</b> это <b>{current_word}</b>:"
+        await bot.edit_message_text(text=response_text,
+                                    chat_id=call.message.chat.id,
+                                    message_id=call.message.message_id
+                                    )
+        user_state['current_index'] += 1
+        await send_next_word(bot=bot,
+                         chat_id=call.message.chat.id,
+                         user_id=user_id,
+                         user_repeat_state=user_repeat_state)
+                         #message_id=call.message.message_id
+
+
+    else:
+        response_text = f"❌ Неверно! <b>{current_word}</b> это <b>{correct_answer}</b> Ваш ответ: {user_answer}"
+        await bot.edit_message_text(text=response_text,
+                                    chat_id=call.message.chat.id,
+                                    message_id=call.message.message_id
+                                    )
+        user_state['current_index'] += 1
+        await send_next_word(bot=bot,
+                         chat_id=call.message.chat.id,
+                         user_id=user_id,
+                         user_repeat_state=user_repeat_state)
+                         #message_id=call.message.message_id
+
 
 @bot.callback_query_handler(func=lambda call: call.data == "rus_eng_write")
 async def repeat_words_ru_eng_write(call):
@@ -169,7 +295,7 @@ async def repeat_words_eng_ru_write(call):
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "start_rus_eng_write")
-async def start_ru_eng_mode(call):
+async def start_rus_eng_write(call):
     await bot.answer_callback_query(call.id)
     user_id = call.from_user.id
 
@@ -206,8 +332,9 @@ async def start_ru_eng_mode(call):
                          message_id=call.message.message_id)
 
 
+
 @bot.callback_query_handler(func=lambda call: call.data == "start_eng_rus_write")
-async def start_eng_rus_mode(call):
+async def start_eng_rus_write(call):
     await bot.answer_callback_query(call.id)
     user_id = call.from_user.id
 
@@ -236,19 +363,17 @@ async def start_eng_rus_mode(call):
         "mode_lang": "eng_rus",
         "current_answer": None
     }
-    mode = user_repeat_state[user_id].get("mode")
-    print(f"mode: {mode}")
+
     # Отправляем первое слово
     await send_next_word(bot=bot,
                          chat_id=call.message.chat.id,
                          user_id=user_id,
-                         mode=mode,
                          user_repeat_state=user_repeat_state,
                          message_id=call.message.message_id)
 
 
 @bot.message_handler(func=lambda message: True)
-async def handle_answer(message):
+async def handle_answer_write(message):
     # Обрабатывает текстовый ввод
     user_id = message.from_user.id
 
@@ -280,7 +405,6 @@ async def handle_answer(message):
                              chat_id=message.chat.id,
                              user_id=user_id,
                              user_repeat_state=user_repeat_state,
-                             mode=state.get("mode"),
                              message=message)
 
     else:
@@ -288,18 +412,17 @@ async def handle_answer(message):
         #await bot.delete_message(message.chat.id, message.message_id)
         response_text = f"❌ Неверно! <b>{current_word}</b> это <b>{correct_answer}</b> Ваш ответ: {user_answer}"
         await bot.send_message(message.chat.id, response_text)
-
         # Переходим к следующему слову
         state['current_index'] += 1
         await send_next_word(bot=bot,
                              chat_id=message.chat.id,
                              user_id=user_id,
                              user_repeat_state=user_repeat_state,
-                             mode=state.get("mode"),
                              message=message)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("back:"))
+# Обработка кнопок навигации по меню
 async def back(call):
     await bot.answer_callback_query(call.id)
     previous_state = call.data.split(":")[-1]

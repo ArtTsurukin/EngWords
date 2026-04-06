@@ -8,7 +8,7 @@ def get_any_random_words(howmuch: int, user_id, learned=False):
 
     session = Session()
 
-    # Собираем join из двух таблиц, limit на 5 записей, func.random(получаем случайные)
+    # Собираем join из двух таблиц, limit на howmuch записей, func.random(получаем случайные)
     try:
         unlearned_words = session.query(
             UserWordAssociation, Word
@@ -64,15 +64,14 @@ def get_any_random_words(howmuch: int, user_id, learned=False):
 
 
 # Создаем словарь с тремя неверными вариантами ответа
-def get_three_random_word():
+def get_three_random_word(lang_word: str):
     session = Session()
     word_data = session.query(Word).order_by(func.random()).limit(3).all()
     three_word = []
     session.close()
     for word in word_data:
-        three_word.append(word.word_rus)
+        x = getattr(word, lang_word)
+        three_word.append(x)
     return three_word
-
-
 
 
