@@ -1,6 +1,7 @@
 import asyncio
 import random
 import time
+import tracemalloc
 
 import telebot.types
 
@@ -9,15 +10,18 @@ from collections import defaultdict
 from database import Session
 from database.models import User, Word, UserWordAssociation
 from sqlalchemy import and_
-from utils import get_any_random_words, get_three_random_word
+from utils import get_any_random_words, send_next_word_for_learn, send_next_word, set_learning_status
 from telebot.async_telebot import AsyncTeleBot
-from menus import main_menu, select_mode_lang_write, send_next_word, select_mode, select_mode_lang_button
+from menus import main_menu, select_mode_lang_write, select_mode, select_mode_lang_button
+
+tracemalloc.start()
 
 bot = AsyncTeleBot(token=config_bot.bot_token, parse_mode="HTML")
 
 
 # Словарь для хранения состояния повторения слов для каждого пользователя
 user_repeat_state = defaultdict(dict)
+user_learn_state = defaultdict(dict)
 
 
 @bot.message_handler(commands=["start"])
@@ -52,7 +56,7 @@ async def send_start_message(message):
             association = UserWordAssociation(
                 user_id=user_id,
                 word_id=word.id,
-                learned=False
+                learning_status="unlearned"
             )
             session.add(association)
 
@@ -70,10 +74,72 @@ async def send_start_message(message):
 async def new_words(call):
     await bot.answer_callback_query(call.id)
     user_id = call.from_user.id
-    words_for_learn = get_any_random_words(howmuch=5, user_id=user_id)
-    for word in words_for_learn:
-        await bot.send_message(call.message.chat.id, f"{word.get('word_eng')} - {word.get('word_rus')}")
-    await main_menu(bot=bot, chat_id=call.message.chat.id)
+    # Получаем первое слово для изучения или добавления в изученные
+    word_for_learn = get_any_random_words(howmuch=1,
+                                          user_id=user_id,
+                                          learning_status_for_request="unlearned")
+    # Создаем словарь для хранения слов для изучения
+    user_learn_state[user_id] = {
+        "words": word_for_learn
+    }
+    await send_next_word_for_learn(bot=bot,
+                                   chat_id=call.message.chat.id,
+                                   message_id=call.message.message_id,
+                                   user_id=user_id,
+                                   user_learn_state=user_learn_state)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "already_known")
+async def already_known_word(call):
+    await bot.answer_callback_query(call.id)
+    user_id = call.from_user.id
+    # Получаем текущее слово
+    current_word = user_learn_state[user_id].get("words")
+    # Вызываем функцию добавляющую слово в изученные
+    success = set_learning_status(word_for_learn=current_word,
+                                  user_id=user_id,
+                                  set_status="learned")
+    if success:
+        word_eng = current_word[0].get("word_eng")
+        await bot.edit_message_text(f"✅ <b>{word_eng}</b> добавлено в словарь изученных слов",
+                                    call.message.chat.id,
+                                    call.message.message_id)
+    else:
+        await bot.edit_message_text("⚠️ Не удалось обновить статус слова",
+                                    call.message.chat.id,
+                                    call.message.message_id)
+    # Очищаем список изучения
+    del user_learn_state[user_id]
+    # Получаем новое слово для изучения
+    word_for_learn = get_any_random_words(howmuch=1, user_id=user_id, learning_status_for_request="unlearned")
+    # Создаем словарь для хранения слов для изучения
+    user_learn_state[user_id] = {
+        "words": word_for_learn
+    }
+    # Вызываем функцию для отправки следующего слова
+    await send_next_word_for_learn(bot=bot,
+                                   chat_id=call.message.chat.id,
+                                   message_id=call.message.message_id,
+                                   user_id=user_id,
+                                   user_learn_state=user_learn_state)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "will_learn")
+async def will_learn_word(call):
+    await bot.answer_callback_query(call.id)
+    user_id = call.from_user.id
+    word_for_learn = get_any_random_words(howmuch=1,
+                                          user_id=user_id,
+                                          learning_status_for_request="unlearned")
+    user_learn_state[user_id]["words"].append(word_for_learn[0])
+    print(user_learn_state[user_id]["words"])
+    await bot.send_message(call.message.chat.id, "Will learned")
+    await send_next_word_for_learn(bot=bot,
+                                   chat_id=call.message.chat.id,
+                                   message_id=call.message.message_id,
+                                   user_id=user_id,
+                                   user_learn_state=user_learn_state)
+
 
 
 @bot.callback_query_handler(func=lambda call: call.data=="repeat_words")
@@ -121,7 +187,7 @@ async def start_rus_eng_button(call):
     # Получаем слова для повторения
     words_for_repeat = get_any_random_words(howmuch=10,
                                             user_id=user_id,
-                                            learned=True)
+                                            learning_status_for_request="learned")
 
     if not words_for_repeat:
         text = "У Вас еще нет изученных слов"
@@ -179,7 +245,7 @@ async def start_eng_rus_button(call):
     # Получаем слова для повторения
     words_for_repeat = get_any_random_words(howmuch=10,
                                             user_id=user_id,
-                                            learned=True)
+                                            learning_status_for_request="learned")
 
     if not words_for_repeat:
         text = "У Вас еще нет изученных слов"
@@ -302,7 +368,7 @@ async def start_rus_eng_write(call):
     # Получаем слова для повторения
     words_for_repeat = get_any_random_words(howmuch=10,
                                             user_id=user_id,
-                                            learned=True)
+                                            learning_status_for_request="learned")
 
     if not words_for_repeat:
         text = "У Вас еще нет изученных слов"
@@ -341,7 +407,7 @@ async def start_eng_rus_write(call):
     # Получаем слова для повторения
     words_for_repeat = get_any_random_words(howmuch=10,
                                             user_id=user_id,
-                                            learned=True)
+                                            learning_status_for_request="learned")
 
     if not words_for_repeat:
         text = "У Вас еще нет изученных слов"
@@ -446,7 +512,7 @@ async def user_stats(call):
     learned_words = session.query(UserWordAssociation).filter(
         and_(
             UserWordAssociation.user_id == call.from_user.id,
-            UserWordAssociation.learned == True
+            UserWordAssociation.learning_status == "learned"
         )
     ).count()
 
@@ -454,7 +520,7 @@ async def user_stats(call):
     unlearned_words = session.query(UserWordAssociation).filter(
         and_(
             UserWordAssociation.user_id == call.from_user.id,
-            UserWordAssociation.learned == False
+            UserWordAssociation.learning_status == "unlearned"
         )
     ).count()
 
