@@ -6,11 +6,12 @@ Base = declarative_base()
 
 
 class UserWordAssociation(Base):
-    __tablename__ = 'user_word_association'
+    __tablename__ = "user_word_association"
 
     user_id = Column(BigInteger, ForeignKey('users.user_id'), primary_key=True)
     word_id = Column(Integer, ForeignKey('words.id'), primary_key=True)
-    learned = Column(Boolean, default=False)
+    learning_status = Column(String) #(unlearned, learned, learning)
+    repeat_counter = Column(Integer)
 
     user = relationship("User", back_populates="word_associations")
     word = relationship("Word", back_populates="user_associations")
