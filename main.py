@@ -88,19 +88,21 @@ async def new_words(call):
                                    user_id=user_id,
                                    user_learn_state=user_learn_state)
 
+    print(user_learn_state[user_id])
 
 @bot.callback_query_handler(func=lambda call: call.data == "already_known")
 async def already_known_word(call):
     await bot.answer_callback_query(call.id)
     user_id = call.from_user.id
     # Получаем текущее слово
-    current_word = user_learn_state[user_id].get("words")
+    current_word = user_learn_state[user_id].get("words")[-1]
+    print(f"current word: {current_word}")
     # Вызываем функцию добавляющую слово в изученные
     success = set_learning_status(word_for_learn=current_word,
                                   user_id=user_id,
                                   set_status="learned")
     if success:
-        word_eng = current_word[0].get("word_eng")
+        word_eng = current_word.get("word_eng")
         await bot.edit_message_text(f"✅ <b>{word_eng}</b> добавлено в словарь изученных слов",
                                     call.message.chat.id,
                                     call.message.message_id)
@@ -108,14 +110,16 @@ async def already_known_word(call):
         await bot.edit_message_text("⚠️ Не удалось обновить статус слова",
                                     call.message.chat.id,
                                     call.message.message_id)
-    # Очищаем список изучения
-    del user_learn_state[user_id]
+    # Удаляем последний элемент
+    user_learn_state[user_id].get("words").pop()
     # Получаем новое слово для изучения
-    word_for_learn = get_any_random_words(howmuch=1, user_id=user_id, learning_status_for_request="unlearned")
-    # Создаем словарь для хранения слов для изучения
-    user_learn_state[user_id] = {
-        "words": word_for_learn
-    }
+    new_word_for_learn = get_any_random_words(
+        howmuch=1,
+        user_id=user_id,
+        learning_status_for_request="unlearned"
+    )
+    # Добавляем новое слово в список для изучения
+    user_learn_state[user_id].get("words").extend(new_word_for_learn)
     # Вызываем функцию для отправки следующего слова
     await send_next_word_for_learn(bot=bot,
                                    chat_id=call.message.chat.id,
@@ -128,18 +132,33 @@ async def already_known_word(call):
 async def will_learn_word(call):
     await bot.answer_callback_query(call.id)
     user_id = call.from_user.id
-    word_for_learn = get_any_random_words(howmuch=1,
-                                          user_id=user_id,
-                                          learning_status_for_request="unlearned")
-    user_learn_state[user_id]["words"].append(word_for_learn[0])
-    print(user_learn_state[user_id]["words"])
-    await bot.send_message(call.message.chat.id, "Will learned")
+    print(f"user_learn_state[user_id].get('words') --- {user_learn_state[user_id].get('words')}")
+    print(type(user_learn_state[user_id].get('words')))
+    current_word = user_learn_state[user_id].get("words")[-1]
+    print(f"current_word: {current_word}")
+    await bot.edit_message_text(f"✏️ Слово <b>{current_word.get('word_eng')}</b> добавлено в словарь для изучения",
+                                call.message.chat.id,
+                                call.message.message_id
+                                )
+    # Меняем learning_status для изучаемого слова
+    set_learning_status(word_for_learn=current_word,
+                        user_id=user_id,
+                        set_status="learning")
+    # Получаем новое слово для изучения
+    new_word_for_learn = get_any_random_words(
+        howmuch=1,
+        user_id=user_id,
+        learning_status_for_request="unlearned"
+    )
+    print(f"new word for learn: {new_word_for_learn}")
+    user_learn_state[user_id].get("words").extend(new_word_for_learn)
+    #user_learn_state[user_id]["words"].append(new_word_for_learn[0])
+    print(f"new_list: {user_learn_state[user_id]}")
+    print(f"len - {len(user_learn_state[user_id].get('words'))}")
     await send_next_word_for_learn(bot=bot,
                                    chat_id=call.message.chat.id,
-                                   message_id=call.message.message_id,
                                    user_id=user_id,
                                    user_learn_state=user_learn_state)
-
 
 
 @bot.callback_query_handler(func=lambda call: call.data=="repeat_words")
@@ -523,10 +542,23 @@ async def user_stats(call):
             UserWordAssociation.learning_status == "unlearned"
         )
     ).count()
+    # Количество изучаемых слов
+    learning_words = session.query(UserWordAssociation).filter(
+        and_(
+            UserWordAssociation.user_id == call.from_user.id,
+            UserWordAssociation.learning_status == "learning"
+        )
+    ).count()
+
 
     total_words = unlearned_words + learned_words
     learned_percent = round(learned_words / total_words * 100, 1)
-    text = f"{user_name}, ты знаешь уже {learned_words} слов, это {learned_percent}%! Всего слов: {total_words} Осталось выучить {unlearned_words}"
+    text = f'''{user_name}, ты знаешь уже {learned_words} слов, это {learned_percent}%! 
+    Всего слов: {total_words} 
+    Учишь сейчас: {learning_words}
+    Осталось выучить {unlearned_words}'''
+
+
     await bot.edit_message_text(
         text=text,
         chat_id=call.message.chat.id,

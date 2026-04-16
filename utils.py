@@ -75,14 +75,12 @@ def set_learning_status(word_for_learn: dict,
     session = Session()
 
     try:
-        word_id = word_for_learn[0].get("word_id")
-
+        word_id = word_for_learn.get("word_id")
         # Находим ассоциацию по user_id и word_id
         association = session.query(UserWordAssociation).filter_by(
             user_id=user_id,
             word_id=word_id
         ).first()
-
         if association:
             # Меняем статус на "learned"
             association.learning_status = set_status
@@ -99,15 +97,20 @@ def set_learning_status(word_for_learn: dict,
     finally:
         session.close()
 
+# a = {"current_word": {'word_eng': 'parent', 'word_rus': 'родитель', 'word_id': 1873, 'association_id': (837000924, 1873)}}
+# set_learning_status(
+#     word_for_learn=a,
+#     user_id=837000924,
+#     set_status="learning"
+# )
 
 
-
-async def send_next_word_for_learn(bot, chat_id, message_id, user_id, user_learn_state):
+async def send_next_word_for_learn(bot, chat_id, user_id, user_learn_state, message_id=None):
     state = user_learn_state[user_id]
 
     if not state or len(state["words"]) > 10:
         # Набор новых слов для изучения закончен
-        text = "10 новых слов для изучения набраны"
+        text = "✔️ 10 новых слов для изучения набраны"
         if message_id:
             await bot.edit_message_text(
                 text=text,
