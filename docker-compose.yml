@@ -24,7 +24,7 @@ services:
         max-file: "5"
 
   bot_app:
-    image: artemtsurukin/eng_words_bot:1.0
+    image: artemtsurukin/eng_words_bot:1.1
     container_name: bot_app
     networks:
       - bot_network
