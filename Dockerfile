@@ -1,14 +1,18 @@
 FROM python:3.11-slim
 
-RUN mkdir -p /app/logs && chmod 755 /app/logs
 RUN apt-get update && apt-get install -y \
-    gcc \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /eng_words
+WORKDIR /app
+
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY . .
+
+RUN useradd -m appuser
+USER appuser
 
 CMD ["python", "main.py"]

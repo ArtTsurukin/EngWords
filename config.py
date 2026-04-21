@@ -15,4 +15,4 @@ class Config:
             raise ValueError("БД не установлена")
 
 
-config = Config()
+config_bot = Config()
