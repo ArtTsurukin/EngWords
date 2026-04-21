@@ -1,0 +1,14 @@
+INFO:__main__:User is already exist user_id: 837000924
+2026-04-19 23:31:54 | INFO | event: User exist, user_id: 837000924, status: success
+2026-04-19 23:52:31 | INFO | user_id: 837000924, status: success, details: None
+2026-04-19 23:53:16 | INFO | message: user_exists, user_id: 837000924, status: success, details: None
+2026-04-20 00:16:04 | INFO | user_exists | user_id=837000924 status=success details=
+2026-04-20 00:17:14 | INFO | event: user_exists, user_id: 837000924 status: success details: 
+2026-04-20 00:25:49 | INFO | event: user_exists, user_id: 837000924 status: success details: 
+2026-04-20 18:03:48 | INFO | event: new_user_created, user_id: 897848170 status: success details: 
+2026-04-20 18:03:56 | INFO | event: user_exists, user_id: 837000924 status: success details: 
+2026-04-20 18:07:34 | INFO | event: user_exists, user_id: - status: success details: 
+2026-04-20 18:32:01 | INFO | event: user_exists, user_id: 837000924 status: success details: 
+2026-04-20 22:19:52 | INFO | event: user_exists, user_id: 837000924 status: success details: 
+2026-04-20 22:20:12 | INFO | event: new_words_requested, user_id: 837000924 status: start details: 
+2026-04-20 22:20:12 | INFO | event: word_sent_for_learning, user_id: 837000924 status: success details: [{'word_eng': 'electricity', 'word_rus': 'электричество', 'word_id': 855, 'association_id': (837000924, 855), 'repeat_counter': 0}]
