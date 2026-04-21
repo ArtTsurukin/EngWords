@@ -581,7 +581,7 @@ async def user_stats(call):
     ).count()
 
 
-    total_words = unlearned_words + learned_words
+    total_words = unlearned_words + learned_words + learning_words
     learned_percent = round((learned_words + learning_words) / total_words * 100, 1)
     text = f'''{user_name}, ты знаешь уже {learned_words + learning_words} слов, это {learned_percent}%! 
     Всего слов: {total_words} 
