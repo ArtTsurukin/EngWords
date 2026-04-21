@@ -21,3 +21,4 @@
 - pyTelegramBotApi
 - SQLAlchemy
 - DB: Postgres
+- asyncio
