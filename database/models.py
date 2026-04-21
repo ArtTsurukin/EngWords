@@ -11,7 +11,7 @@ class UserWordAssociation(Base):
     user_id = Column(BigInteger, ForeignKey('users.user_id'), primary_key=True)
     word_id = Column(Integer, ForeignKey('words.id'), primary_key=True)
     learning_status = Column(String) #(unlearned, learned, learning)
-    repeat_counter = Column(Integer)
+    repeat_counter = Column(Integer, default=0)
 
     user = relationship("User", back_populates="word_associations")
     word = relationship("Word", back_populates="user_associations")

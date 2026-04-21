@@ -3,54 +3,71 @@ from database import Session
 from database.models import UserWordAssociation, Word
 from menus import main_menu
 
-import tracemalloc
 import telebot.types
 import random
 
 
-tracemalloc.start()
 # Функция получает заданное количество англ слов с переводом
 def get_any_random_words(howmuch: int,
                          user_id: int,
-                         learning_status_for_request: str):
+                         learning_status_for_request: str,
+                         order_mode: str = "random"):
 
     session = Session()
 
-    # Собираем join из двух таблиц, limit на howmuch записей, func.random(получаем случайные)
     try:
-        ten_words = session.query(
+        query = session.query(
             UserWordAssociation, Word
-        ).join(
+            ).join(
             Word, UserWordAssociation.word_id == Word.id
-        ).filter(
+            ).filter(
             and_(
                 UserWordAssociation.user_id == user_id,
                 UserWordAssociation.learning_status == learning_status_for_request
+                )
             )
-        ).order_by(
-            func.random()
-        ).limit(howmuch).all()
 
-        if not ten_words:
+        # Выбор стратегии сортировки
+        if order_mode == "by_repeat":
+            query = query.order_by(
+                UserWordAssociation.repeat_counter.asc(),
+                func.random()
+            )
+
+            learned_words = session.query(
+                UserWordAssociation, Word
+            ).join(
+            Word, UserWordAssociation.word_id == Word.id
+            ).filter(
+            and_(
+                UserWordAssociation.user_id == user_id,
+                UserWordAssociation.learning_status == "learned"
+                )
+            ).limit(int(howmuch * 0.3)).all()
+            words = query.limit(int(howmuch * 0.7)).all()
+            words.extend(learned_words)
+            random.shuffle(words)
+        else:  # по умолчанию random
+            query = query.order_by(func.random())
+            words = query.limit(howmuch).all()
+
+        if not words:
             return []
 
-        # Подготавливаем данные для возврата
         words_data = []
-        for association, word in ten_words:
-            # Добавляем информацию о слове
+        for association, word in words:
             words_data.append({
                 'word_eng': word.word_eng,
                 'word_rus': word.word_rus,
                 'word_id': word.id,
-                'association_id': (association.user_id, association.word_id)
-            })
-
-        session.commit()
+                'association_id': (association.user_id, association.word_id),
+                'repeat_counter': association.repeat_counter
+                })
         return words_data
 
     except Exception as e:
         session.rollback()
-        print(f"Error in get_ten_random_words: {e}")
+        print(f"Error in get_words: {e}")
         return []
 
     finally:
@@ -82,7 +99,7 @@ def set_learning_status(word_for_learn: dict,
             word_id=word_id
         ).first()
         if association:
-            # Меняем статус на "learned"
+            # Меняем статус на {set_status}
             association.learning_status = set_status
             session.commit()
             return True
@@ -97,12 +114,6 @@ def set_learning_status(word_for_learn: dict,
     finally:
         session.close()
 
-# a = {"current_word": {'word_eng': 'parent', 'word_rus': 'родитель', 'word_id': 1873, 'association_id': (837000924, 1873)}}
-# set_learning_status(
-#     word_for_learn=a,
-#     user_id=837000924,
-#     set_status="learning"
-# )
 
 
 async def send_next_word_for_learn(bot, chat_id, user_id, user_learn_state, message_id=None):
@@ -149,6 +160,34 @@ async def send_next_word_for_learn(bot, chat_id, user_id, user_learn_state, mess
 
 #send_next_word_button(user_id=837000924)
 
+# Увеличивает счетчик повторений слова
+async def set_repeat_counter(user_id, word_id):
+    session = Session()
+
+    try:
+        word_id = word_id
+        # Находим ассоциацию по user_id и word_id
+        association = session.query(UserWordAssociation).filter_by(
+            user_id=user_id,
+            word_id=word_id
+        ).first()
+        if association:
+            # Увеличивает счетчик
+            association.repeat_counter += 1
+            if association.repeat_counter > 7:
+                association.learning_status = "learned"
+            session.commit()
+        else:
+            session.rollback()
+
+    except Exception as e:
+        session.rollback()
+        print(f"Ошибка при увеличении счетчика: {e}")
+        raise
+    finally:
+        session.close()
+
+
 
 async def send_next_word(bot,
                          chat_id,
@@ -187,6 +226,9 @@ async def send_next_word(bot,
         return
 
     current_word = state["words"][state["current_index"]]
+    # # Вызываем функцию увеличения счетчика повторений слов
+    # await set_repeat_counter(user_id=user_id, word_id=current_word.get("word_id"))
+
     word_rus = current_word.get('word_rus')
     word_eng = current_word.get('word_eng')
 
@@ -219,6 +261,8 @@ async def send_next_word(bot,
 
         markup.add(button_1, button_2, button_3, button_4)
 
+    # Вызываем функцию увеличения счетчика повторений слов
+    await set_repeat_counter(user_id=user_id, word_id=current_word.get("word_id"))
 
     if message_id:
         await bot.edit_message_text(

@@ -1,4 +1,5 @@
 # Create DB
+import logging
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 
@@ -6,6 +7,7 @@ from dictionary import oxford_3000
 from config import config_bot
 from database.models import Base, Word
 
+logger = logging.getLogger(__name__)
 engine = create_engine(config_bot.database_url)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
@@ -16,9 +18,9 @@ def create_word_dict():
     if session.query(func.count(Word.id)).scalar() < 1:
         session.add_all(oxford_3000)
         session.commit()
-        print("create DB")
+        logger.info(msg="db_created", extra={"status": "success"})
     else:
-        print("DB already exist")
+        logger.info(msg="db_exists", extra={"status": "success"})
 
     session.close()
 
