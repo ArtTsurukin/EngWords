@@ -1,6 +1,7 @@
 import asyncio
 import telebot.types
 
+from ai import explain_with_examples
 from config import config_bot
 from logging_config import setup_logger
 from collections import defaultdict
@@ -167,26 +168,92 @@ async def already_known_word(call):
 async def will_learn_word(call):
     await bot.answer_callback_query(call.id)
     user_id = call.from_user.id
+
     current_word = user_learn_state[user_id].get("words")[-1]
-    await bot.edit_message_text(f"✏️ Слово <b>{current_word.get('word_eng')}</b> добавлено в словарь для изучения",
-                                call.message.chat.id,
-                                call.message.message_id
-                                )
-    # Меняем learning_status для изучаемого слова
-    set_learning_status(word_for_learn=current_word,
-                        user_id=user_id,
-                        set_status="learning")
-    # Получаем новое слово для изучения
-    new_word_for_learn = get_any_random_words(
+    word_eng = current_word.get("word_eng")
+
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+
+    btn_1 = telebot.types.InlineKeyboardButton(
+        "Объяснение слова",
+        callback_data="ai_explain"
+    )
+    btn_2 = telebot.types.InlineKeyboardButton(
+        "Дальше",
+        callback_data="next_word_after_ai"
+    )
+
+    markup.add(btn_1, btn_2)
+
+    await bot.edit_message_text(
+        text=f"Объяснить <b>{word_eng}</b> или идем дальше?",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=markup
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "ai_explain")
+async def handle_ai_explain(call):
+    await bot.answer_callback_query(call.id)
+
+    user_id = call.from_user.id
+    current_word = user_learn_state[user_id].get("words")[-1]
+    word_eng = current_word.get("word_eng")
+
+    await bot.send_message(call.message.chat.id, "⏳ Генерирую объяснение...")
+
+    try:
+        result = explain_with_examples(word_eng)
+
+        markup = telebot.types.InlineKeyboardMarkup()
+        btn = telebot.types.InlineKeyboardButton(
+            "Дальше",
+            callback_data="next_word_after_ai"
+        )
+        markup.add(btn)
+
+        await bot.send_message(
+            call.message.chat.id,
+            result,
+            reply_markup=markup
+        )
+
+    except Exception as e:
+        await bot.send_message(call.message.chat.id, "Ошибка при работе AI")
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "next_word_after_ai")
+async def next_after_ai(call):
+    await bot.answer_callback_query(call.id)
+
+    user_id = call.from_user.id
+    current_word = user_learn_state[user_id].get("words")[-1]
+
+    # Меняем статус
+    set_learning_status(
+        word_for_learn=current_word,
+        user_id=user_id,
+        set_status="learning"
+    )
+
+    # Удаляем текущее слово
+    user_learn_state[user_id].get("words").pop()
+
+    # Берем новое
+    new_word = get_any_random_words(
         howmuch=1,
         user_id=user_id,
         learning_status_for_request="unlearned"
     )
-    user_learn_state[user_id].get("words").extend(new_word_for_learn)
-    await send_next_word_for_learn(bot=bot,
-                                   chat_id=call.message.chat.id,
-                                   user_id=user_id,
-                                   user_learn_state=user_learn_state)
+
+    user_learn_state[user_id].get("words").extend(new_word)
+
+    await send_next_word_for_learn(
+        bot=bot,
+        chat_id=call.message.chat.id,
+        user_id=user_id,
+        user_learn_state=user_learn_state
+    )
 
 
 @bot.callback_query_handler(func=lambda call: call.data=="repeat_words")
