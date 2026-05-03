@@ -34,16 +34,25 @@ def get_any_random_words(howmuch: int,
                 func.random()
             )
 
+            subquery = session.query(
+                func.min(UserWordAssociation.repeat_counter)
+            ).filter(
+                UserWordAssociation.user_id == user_id,
+                UserWordAssociation.learning_status == "learned"
+            ).scalar()
+
             learned_words = session.query(
                 UserWordAssociation, Word
             ).join(
-            Word, UserWordAssociation.word_id == Word.id
+                Word, UserWordAssociation.word_id == Word.id
             ).filter(
-            and_(
                 UserWordAssociation.user_id == user_id,
-                UserWordAssociation.learning_status == "learned"
-                )
+                UserWordAssociation.learning_status == "learned",
+                UserWordAssociation.repeat_counter == subquery
+            ).order_by(
+                func.random()
             ).limit(int(howmuch * 0.3)).all()
+
             words = query.limit(int(howmuch * 0.7)).all()
             words.extend(learned_words)
             random.shuffle(words)
