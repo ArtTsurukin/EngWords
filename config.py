@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-#load_dotenv(".env.production")
-load_dotenv(".env.development")
+load_dotenv(".env.production")
+#load_dotenv(".env.development")
 
 
 class Config:
